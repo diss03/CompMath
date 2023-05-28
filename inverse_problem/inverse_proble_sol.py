@@ -1,91 +1,98 @@
 import numpy as np
+from direct_proble_sol import createArr, createArr_
+from matplotlib import pyplot as plt
+from math import fabs
 
 
-class MassSpringSystem:
-    def __init__(self, m1, m2, k1, k2, k3, x10, x20, v10, v20):
-        self.K = np.empty([2, 2], dtype=float)
-        self.K[0][0] = -(k1 + k2) / m1
-        self.K[0][1] = k2 / m1
-        self.K[1][0] = k2 / m2
-        self.K[1][1] = -(k2 + k3) / m2
+def Jacobian(t, x2_observed, m1, m2, k1, k2, beta):
+    J = np.zeros((len(x2_observed), len(beta)))
 
-        self.k1 = k1
-        self.k2 = k2
-        self.k3 = k3
-        self.m1 = m1
-        self.m2 = m2
+    for j in range(len(beta)):
+        # эпсилон изменяется в зависимости от значения элемента вектора бета, по которому дифференцируем (иначе не работает)
+        eps = 0.01 * beta[j]
 
-        self.state = np.array([0.0, 0.0, 0.0, 0.0])
+        # численное дифференцирование
+        new_beta = np.copy(beta)
+        new_beta[j] += eps
+        x2_p = createArr_(m1, m2, k1, k2, new_beta, t)
+        new_beta[j] -= 2 * eps
+        x2_m = createArr_(m1, m2, k1, k2, new_beta, t)
+        dx2_dbeta_j = (x2_p - x2_m) / (2 * eps)
 
-        self.initial_state = np.array([x10, v10, x20, v20])
-
-    def f(self, state):
-        self.K[0][0] = -(self.k1 + self.k2) / self.m1
-        self.K[0][1] = self.k2 / self.m1
-        self.K[1][0] = self.k2 / self.m2
-        self.K[1][1] = -(self.k2 + self.k3) / self.m2
-
-        a = np.matmul(self.K, [state[0], state[2]])
-        self.state[1] = a[0]
-        self.state[3] = a[1]
-        self.state[0] = state[1]
-        self.state[2] = state[3]
+        # устанавливаем столбец с производными
+        J[:, j] = dx2_dbeta_j
+    return J
 
 
-class RungeKutta4MethodSolver:
-    def __init__(self, system, h=0.01):
-        self.system = system
-        self.h = h
-        self.k = np.empty([4, 4], dtype=float)
+def GaussNewton(t, x2_observed, m1, m2, k1, k2, beta_init, tol, max_iter):
+    beta = np.copy(beta_init)
+    cost_new = 0
 
-    def RK4(self, state):
-        # self.system.f(state * self.h)
-        self.system.f(state)
-        self.k[0] = self.system.state
+    for k in range(max_iter):
+        # рассчет вектора невязки
+        r_beta = createArr_(m1, m2, k1, k2, beta, t) - x2_observed
 
-        self.system.f(state + self.k[0] / 2 * self.h)
-        self.k[1] = self.system.state
+        # рассчет якобианы
+        J = Jacobian(t, x2_observed, m1, m2, k1, k2, beta)
+        # рассчет нового вектора бета
+        beta = beta - np.linalg.inv(J.T @ J) @ J.T @ r_beta
 
-        self.system.f(state + self.k[1] / 2 * self.h)
-        self.k[2] = self.system.state
+        cost_old = cost_new
+        cost_new = np.linalg.norm(r_beta)
 
-        self.system.f(state + self.k[2] * self.h)
-        self.k[3] = self.system.state
+        if fabs(cost_old - cost_new) < tol:
+            return [beta, k + 1]
 
-        return state + (self.k[0] + 2 * self.k[1] + 2 * self.k[2] + self.k[3]) / 6 * self.h
-
-
-def createArr(m1, m2, k1, k2, k3, x10, x20, v10, v20, t):
-    sys = MassSpringSystem(m1, m2, k1, k2, k3, x10, x20, v10, v20)
-    solver = RungeKutta4MethodSolver(sys, t[1])
-    state = sys.initial_state
-
-    res = np.empty((len(t), 4), dtype=float)
-
-    for i in range(0, (len(t))):
-        res[i][0] = state[0]
-        res[i][1] = state[2]
-        res[i][2] = state[1]
-        res[i][3] = state[3]
-
-        state = solver.RK4(state)
-
-    return res
+    return [beta, max_iter]
 
 
-def createArr_(m1, m2, k1, k2, beta, t):
-    sys = MassSpringSystem(m1, m2, k1, k2, beta[0], beta[1], beta[2], beta[3], beta[4])
-    solver = RungeKutta4MethodSolver(sys, t[1])  # t[1] = h
-    state = sys.initial_state
+def main():
+    stop_time = 3
+    h = 0.01
+    t = np.arange(0, stop_time, h)
+    m1, m2 = 1, 2.03
+    k1, k2, k3 = 20, 20, 30
+    x10, x20, v10, v20 = -0.5, 0.5, 0, 0
+    # получение массива из прямой задачи
+    true_solution = createArr(m1, m2, k1, k2, k3, x10, x20, v10, v20, t)
 
-    res = np.empty((len(t), 4), dtype=float)
+    # добавление шумов
+    x2_observed = true_solution[:, 1] + np.random.normal(scale=0.05, size=len(t))
 
-    for i in range(0, (len(t))):
-        res[i][0] = state[0]  # x1
-        res[i][1] = state[2]  # x2
-        res[i][2] = state[1]  # v1
-        res[i][3] = state[3]  # v2
 
-        state = solver.RK4(state)
+    # отрисовка идеальных значений и зашумленных значений
+    plt.plot(t, true_solution[:, 1], color='y', linewidth=1.5, label='true chart')
+    plt.plot(t, x2_observed, 'o', markersize=1.5, color='black', label='noise values')
 
-    return res[:, 1]
+    plt.title('Mass-Spring System', fontsize=15)
+    plt.xlabel('Time, sec', fontsize=10)
+    plt.ylabel('Coordinates, m', fontsize=10)
+
+    plt.legend()
+    plt.show()
+
+    # запуск решения
+    beta_init = np.array([40, 1, -1, -0.3, 0.6], dtype=float)
+    tol = 0.000001  # погрешность для условия выхода (использую разность норм бета текущей и предыдущей итерации)
+    max_iter = 10
+    beta_opt, iter = GaussNewton(t, x2_observed, m1, m2, k1, k2, beta_init, tol, max_iter)
+
+    print("Количество пройденных итераций = ", iter)
+    print("Ответ: k3 = ", beta_opt[0], ", x10 = ", beta_opt[1], ", x20 = ", beta_opt[2], ", v10 = ",
+          beta_opt[3], ", v20 = ", beta_opt[4], sep='')
+
+    # отрисовка зашумленных значений и графика по полученному вектору бета
+    plt.plot(t, x2_observed, 'o', markersize=1.5, color='black', label='noise values')
+    plt.plot(t, createArr_(m1, m2, k1, k2, beta_opt, t), color='red', linewidth=1.5,
+             label='optimized value chart', linestyle='dashed')
+
+    plt.title('Mass-Spring System', fontsize=15)
+    plt.xlabel('Time, sec', fontsize=10)
+    plt.ylabel('Coordinates, m', fontsize=10)
+
+    plt.legend()
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
