@@ -81,12 +81,11 @@ def CholeskyDecompositionSolver(ec):
         ec.x[i] = (ec.y[i] - sum) / ec.L_T[i][i]
 
 
-def GaussNewton(t, x2_observed, m1, m2, k1, k2, beta_init, tol, max_iter):
-    beta = Beta(beta_init)
+def GaussNewton(t, x2_observed, m1, m2, k1, k2, beta, tol, max_iter):
     cost_new = 0
-    J = JacoianMatrix(len(x2_observed), len(beta_init))
+    J = JacoianMatrix(len(x2_observed), len(beta.new))
     x2_arr = X2Array(len(x2_observed))
-    ec = Ecuation(len(beta_init))
+    ec = Ecuation(len(beta.new))
     r = Residual(len(x2_observed))
 
     for k in range(max_iter):
@@ -108,9 +107,9 @@ def GaussNewton(t, x2_observed, m1, m2, k1, k2, beta_init, tol, max_iter):
         cost_new = np.linalg.norm(r.r_beta)
 
         if fabs(cost_old - cost_new) < tol:
-            return [beta.new, k + 1]
+            return k + 1
 
-    return [beta.new, max_iter]
+    return max_iter
 
 
 def main():
@@ -128,20 +127,21 @@ def main():
 
     # запуск решения
     beta_init = np.array([40, 1, -1, -0.3, 0.6], dtype=float)
+    beta = Beta(beta_init)
     tol = 0.000001  # погрешность для условия выхода (использую разность норм бета текущей и предыдущей итерации)
     max_iter = 20
-    beta_opt, iter = GaussNewton(t, x2_observed, m1, m2, k1, k2, beta_init, tol, max_iter)
+    iter = GaussNewton(t, x2_observed, m1, m2, k1, k2, beta, tol, max_iter)
 
     print("Первоначальные данные: k3 = ", k3, ", x10 = ", x10, ", x20 = ", x20, ", v10 = ", v10, ", v20 = ", v20,
           sep='')
     print("Количество пройденных итераций:", iter)
-    print("Ответ: k3 = ", beta_opt[0], ", x10 = ", beta_opt[1], ", x20 = ", beta_opt[2], ", v10 = ",
-          beta_opt[3], ", v20 = ", beta_opt[4], sep='')
+    print("Ответ: k3 = ", beta.new[0], ", x10 = ", beta.new[1], ", x20 = ", beta.new[2], ", v10 = ",
+          beta.new[3], ", v20 = ", beta.new[4], sep='')
 
     # отрисовка зашумленных значений и графика по полученному вектору бета
     plt.plot(t, true_solution[:, 1], color='blue', linewidth=1.5, label='true chart')
     plt.plot(t, x2_observed, 'o', markersize=1.5, color='black', label='noise values')
-    plt.plot(t, createArr_(m1, m2, k1, k2, beta_opt, t), color='red', linewidth=1.5,
+    plt.plot(t, createArr_(m1, m2, k1, k2, beta.new, t), color='red', linewidth=1.5,
              label='optimized value chart', linestyle='dashed')
 
     plt.title('Mass-Spring System', fontsize=15)
