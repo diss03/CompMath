@@ -1,47 +1,71 @@
 import numpy as np
-from direct_proble_sol import createArr, createArr_
+from direct_problem_sol import createArr, createArr_
 from matplotlib import pyplot as plt
 from math import fabs
 from algebra_module import CholeskyDecompositionSolver
 
-def Jacobian(t, x2_observed, m1, m2, k1, k2, beta):
-    J = np.zeros((len(x2_observed), len(beta)))
 
+class JacoianMatrix():
+    def __init__(self, len1, len2):
+        self.J = np.zeros((len1, len2))
+
+
+class X2Array():
+    def __init__(self, len):
+        self.p = np.zeros(len)
+        self.m = np.zeros(len)
+
+class Ecuation():
+    def __init__(self, len):
+        self.A = np.zeros((len, len))
+        self.b = np.zeros(len)
+        self.x = np.zeros(len)
+
+class Residual():
+    def __init__(self, len):
+        self.r_beta = np.zeros(len)
+
+
+
+def Jacobian(t, J, x2_arr, m1, m2, k1, k2, beta):
     for j in range(len(beta)):
         # эпсилон изменяется в зависимости от значения элемента вектора бета, по которому дифференцируем (иначе не работает)
         eps = 0.01 * beta[j]
 
         # численное дифференцирование
         beta[j] += eps
-        x2_p = createArr_(m1, m2, k1, k2, beta, t)
+        x2_arr.p = createArr_(m1, m2, k1, k2, beta, t)
         beta[j] -= 2 * eps
-        x2_m = createArr_(m1, m2, k1, k2, beta, t)
-        dx2_dbeta_j = (x2_p - x2_m) / (2 * eps)
-
+        x2_arr.m = createArr_(m1, m2, k1, k2, beta, t)
         # устанавливаем столбец с производными
-        J[:, j] = dx2_dbeta_j
-    return J
+        J.J[:, j] = (x2_arr.p - x2_arr.m) / (2 * eps)
 
 
 def GaussNewton(t, x2_observed, m1, m2, k1, k2, beta_init, tol, max_iter):
     new_beta = np.copy(beta_init)
     cost_new = 0
+    J = JacoianMatrix(len(x2_observed), len(beta_init))
+    x2_arr = X2Array(len(x2_observed))
+    ec = Ecuation(len(beta_init))
+    r = Residual(len(x2_observed))
 
     for k in range(max_iter):
         # рассчет вектора невязки
-        r_beta = createArr_(m1, m2, k1, k2, new_beta, t) - x2_observed
+        r.r_beta = createArr_(m1, m2, k1, k2, new_beta, t) - x2_observed
 
         # рассчет якобианы
-        J = Jacobian(t, x2_observed, m1, m2, k1, k2, new_beta)
+        Jacobian(t, J, x2_arr, m1, m2, k1, k2, new_beta)
         # рассчет нового вектора бета
         old_beta = new_beta
-        A = np.dot(J.T, J)
-        b = np.dot(J.T, r_beta)
-        x = CholeskyDecompositionSolver(A, -b)
-        new_beta = x.T + old_beta
+
+        ec.A = np.dot(J.J.T, J.J)
+        ec.b = np.dot(J.J.T, r.r_beta)
+        ec.x = CholeskyDecompositionSolver(ec.A, -ec.b)
+
+        new_beta = ec.x.T + old_beta
 
         cost_old = cost_new
-        cost_new = np.linalg.norm(r_beta)
+        cost_new = np.linalg.norm(r.r_beta)
 
         if fabs(cost_old - cost_new) < tol:
             return [new_beta, k + 1]
@@ -62,7 +86,6 @@ def main():
     # добавление шумов
     x2_observed = true_solution[:, 1] + np.random.normal(scale=0.05, size=len(t))
 
-
     # отрисовка идеальных значений и зашумленных значений
     plt.plot(t, true_solution[:, 1], color='y', linewidth=1.5, label='true chart')
     plt.plot(t, x2_observed, 'o', markersize=1.5, color='black', label='noise values')
@@ -77,7 +100,7 @@ def main():
     # запуск решения
     beta_init = np.array([40, 1, -1, -0.3, 0.6], dtype=float)
     tol = 0.000001  # погрешность для условия выхода (использую разность норм бета текущей и предыдущей итерации)
-    max_iter = 10
+    max_iter = 1000
     beta_opt, iter = GaussNewton(t, x2_observed, m1, m2, k1, k2, beta_init, tol, max_iter)
 
     print("Количество пройденных итераций = ", iter)

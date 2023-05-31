@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def transpose(A):
     A_T = np.copy(A)
     for i in range(len(A)):
@@ -25,7 +26,7 @@ def determinant(A):
                         minor[i - 1][k] = A[i][k]
                     elif k > j:
                         minor[i - 1][k - 1] = A[i][k]
-            #уточнить знак!!!
+            # уточнить знак!!!
             sign = (-1) ** j
             det += sign * A[0][j] * determinant(minor)
         return det
@@ -34,7 +35,7 @@ def determinant(A):
 def unionMatrix(A):
     n = len(A)
     A_star = np.zeros((n, n))
-    minor = np.zeros((n-1, n-1))
+    minor = np.zeros((n - 1, n - 1))
     for i in range(n):
         for j in range(n):
 
@@ -43,18 +44,14 @@ def unionMatrix(A):
                     if l < i and m < j:
                         minor[l][m] = A[l][m]
                     elif l > i and m < j:
-                        minor[l-1][m] = A[l][m]
+                        minor[l - 1][m] = A[l][m]
                     elif l < i and m > j:
-                        minor[l][m-1] = A[l][m]
+                        minor[l][m - 1] = A[l][m]
                     elif l > i and m > j:
-                        minor[l-1][m-1] = A[l][m]
+                        minor[l - 1][m - 1] = A[l][m]
 
-            A_star[i][j] = ((-1) ** (i+j)) * determinant(minor)
+            A_star[i][j] = ((-1) ** (i + j)) * determinant(minor)
     return A_star
-
-def inverce(A):
-    A_inv = transpose(unionMatrix(A))/determinant(A)
-    return A_inv
 
 
 def CholeskyDecompositionSolver(A, b):
@@ -74,8 +71,8 @@ def CholeskyDecompositionSolver(A, b):
                     L[j][i] = (A[j][i] - np.sum(L[i] * L[j])) / L[i][i]
 
     L_T = transpose(L)
-    L_inv = inverce(L)
-    L_T_inv = inverce(L_T)
+    L_inv = transpose(unionMatrix(L)) / determinant(L)
+    L_T_inv = transpose(unionMatrix(L_T)) / determinant(L_T)
 
     # L @ y = b
     # L_T @ x = y
