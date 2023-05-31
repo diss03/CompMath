@@ -2,7 +2,7 @@ import numpy as np
 from direct_proble_sol import createArr, createArr_
 from matplotlib import pyplot as plt
 from math import fabs
-
+from algebra_module import CholeskyDecompositionSolver
 
 def Jacobian(t, x2_observed, m1, m2, k1, k2, beta):
     J = np.zeros((len(x2_observed), len(beta)))
@@ -12,11 +12,10 @@ def Jacobian(t, x2_observed, m1, m2, k1, k2, beta):
         eps = 0.01 * beta[j]
 
         # численное дифференцирование
-        new_beta = np.copy(beta)
-        new_beta[j] += eps
-        x2_p = createArr_(m1, m2, k1, k2, new_beta, t)
-        new_beta[j] -= 2 * eps
-        x2_m = createArr_(m1, m2, k1, k2, new_beta, t)
+        beta[j] += eps
+        x2_p = createArr_(m1, m2, k1, k2, beta, t)
+        beta[j] -= 2 * eps
+        x2_m = createArr_(m1, m2, k1, k2, beta, t)
         dx2_dbeta_j = (x2_p - x2_m) / (2 * eps)
 
         # устанавливаем столбец с производными
@@ -25,25 +24,29 @@ def Jacobian(t, x2_observed, m1, m2, k1, k2, beta):
 
 
 def GaussNewton(t, x2_observed, m1, m2, k1, k2, beta_init, tol, max_iter):
-    beta = np.copy(beta_init)
+    new_beta = np.copy(beta_init)
     cost_new = 0
 
     for k in range(max_iter):
         # рассчет вектора невязки
-        r_beta = createArr_(m1, m2, k1, k2, beta, t) - x2_observed
+        r_beta = createArr_(m1, m2, k1, k2, new_beta, t) - x2_observed
 
         # рассчет якобианы
-        J = Jacobian(t, x2_observed, m1, m2, k1, k2, beta)
+        J = Jacobian(t, x2_observed, m1, m2, k1, k2, new_beta)
         # рассчет нового вектора бета
-        beta = beta - np.linalg.inv(J.T @ J) @ J.T @ r_beta
+        old_beta = new_beta
+        A = np.dot(J.T, J)
+        b = np.dot(J.T, r_beta)
+        x = CholeskyDecompositionSolver(A, -b)
+        new_beta = x.T + old_beta
 
         cost_old = cost_new
         cost_new = np.linalg.norm(r_beta)
 
         if fabs(cost_old - cost_new) < tol:
-            return [beta, k + 1]
+            return [new_beta, k + 1]
 
-    return [beta, max_iter]
+    return [new_beta, max_iter]
 
 
 def main():
