@@ -140,7 +140,7 @@ def main():
     print("Количество пройденных итераций:", iter)
     print("Ответ: k3 = ", beta.new[0], ", x10 = ", beta.new[1], ", x20 = ", beta.new[2], ", v10 = ",
           beta.new[3], ", v20 = ", beta.new[4], sep='')
-    print(f"Вычисление заняло {toc - tic:0.4f} секунд")
+    print(f"Вычисление заняло: {toc - tic:0.4f} секунд")
 
     # отрисовка зашумленных значений и графика по полученному вектору бета
     plt.plot(t, true_solution[:, 1], color='blue', linewidth=1.5, label='true chart')

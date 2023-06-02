@@ -41,23 +41,23 @@ class RungeKutta4MethodSolver:
         self.tmp_arr = np.empty([4, 1], dtype=float)
 
     def RK4(self):
-
         self.system.f(self.state)
         self.k[0] = np.copy(self.system.state)
 
-        self.tmp_arr = self.state + self.k[0] / 2 * self.h
+        self.tmp_arr = np.add(self.state, np.dot(np.divide(self.k[0], 2), self.h))
         self.system.f(self.tmp_arr)
         self.k[1] = np.copy(self.system.state)
 
         self.tmp_arr = self.state + self.k[1] / 2 * self.h
+        self.tmp_arr = np.add(self.state, np.dot(np.divide(self.k[1], 2), self.h))
         self.system.f(self.tmp_arr)
         self.k[2] = np.copy(self.system.state)
 
-        self.tmp_arr = self.state + self.k[2] * self.h
+        self.tmp_arr = np.add(self.state, np.dot(self.k[0], self.h))
         self.system.f(self.tmp_arr)
         self.k[3] = np.copy(self.system.state)
 
-        self.state += (self.k[0] + 2 * self.k[1] + 2 * self.k[2] + self.k[3]) / 6 * self.h
+        self.state = np.add(self.state, ((self.k[0] + 2 * self.k[1] + 2 * self.k[2] + self.k[3]) / 6 * self.h))
 
 
 def createArr(m1, m2, k1, k2, k3, x10, x20, v10, v20, t):
@@ -81,7 +81,7 @@ def createArr(m1, m2, k1, k2, k3, x10, x20, v10, v20, t):
 def createArr_(m1, m2, k1, k2, beta, t):
     sys = MassSpringSystem(m1, m2, k1, k2, beta[0], beta[1], beta[2], beta[3], beta[4])
     solver = RungeKutta4MethodSolver(sys, t[1])  # t[1] = h
-    solver.state =  np.copy(sys.initial_state)
+    solver.state = np.copy(sys.initial_state)
 
     res = np.empty((len(t), 4), dtype=float)
 
