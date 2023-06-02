@@ -63,7 +63,8 @@ class RungeKutta4MethodSolver:
 
         np.dot(self.k[1], 2, out=self.tmp_arr)
         np.add(self.k[0], self.tmp_arr, out=self.tmp_arr)
-        np.add(self.tmp_arr, 2 * self.k[2], out=self.tmp_arr)
+        np.dot(self.k[2], 2, out=self.k[2])
+        np.add(self.tmp_arr, self.k[2], out=self.tmp_arr)
         np.add(self.tmp_arr, self.k[3], out=self.tmp_arr)
         np.divide(self.tmp_arr, 6, out=self.tmp_arr)
         np.dot(self.tmp_arr, self.h, out=self.tmp_arr)
