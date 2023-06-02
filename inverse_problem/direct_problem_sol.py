@@ -38,26 +38,26 @@ class RungeKutta4MethodSolver:
         self.h = h
         self.k = np.empty([4, 4], dtype=float)
         self.state = np.empty([4, 1], dtype=float)
-        self.tmp_arr = np.empty([4, 1], dtype=float)
+        self.tmp_arr = np.zeros([4], dtype=float)
 
     def RK4(self):
         self.system.f(self.state)
         self.k[0] = np.copy(self.system.state)
 
-        self.tmp_arr = np.divide(self.k[0], 2)
-        self.tmp_arr = np.dot(self.tmp_arr, self.h)
-        self.tmp_arr = np.add(self.state, self.tmp_arr)
+        np.divide(self.k[0], 2, out=self.tmp_arr)
+        np.dot(self.tmp_arr, self.h, out=self.tmp_arr)
+        np.add(self.state, self.tmp_arr, out=self.tmp_arr)
         self.system.f(self.tmp_arr)
         self.k[1] = np.copy(self.system.state)
 
-        self.tmp_arr = np.divide(self.k[1], 2)
-        self.tmp_arr = np.dot(self.tmp_arr, self.h)
-        self.tmp_arr = np.add(self.state, self.tmp_arr)
+        np.divide(self.k[1], 2, out=self.tmp_arr)
+        np.dot(self.tmp_arr, self.h, out=self.tmp_arr)
+        np.add(self.state, self.tmp_arr, out=self.tmp_arr)
         self.system.f(self.tmp_arr)
         self.k[2] = np.copy(self.system.state)
 
-        self.tmp_arr = np.dot(self.k[2], self.h)
-        self.tmp_arr = np.add(self.state, self.tmp_arr)
+        np.dot(self.k[2], self.h, out=self.tmp_arr)
+        np.add(self.state, self.tmp_arr, out=self.tmp_arr)
         self.system.f(self.tmp_arr)
         self.k[3] = np.copy(self.system.state)
 
