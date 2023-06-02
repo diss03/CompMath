@@ -37,29 +37,29 @@ class RungeKutta4MethodSolver:
         self.system = system
         self.h = h
         self.k = np.empty([4, 4], dtype=float)
-        self.state = np.empty([4, 1], dtype=float)
+        self.state = np.empty([4], dtype=float)
         self.tmp_arr = np.empty([4], dtype=float)
 
     def RK4(self):
         self.system.f(self.state)
-        self.k[0] = np.copy(self.system.state)
+        np.copyto(self.k[0], self.system.state)
 
         np.divide(self.k[0], 2, out=self.tmp_arr)
         np.dot(self.tmp_arr, self.h, out=self.tmp_arr)
         np.add(self.state, self.tmp_arr, out=self.tmp_arr)
         self.system.f(self.tmp_arr)
-        self.k[1] = np.copy(self.system.state)
+        np.copyto(self.k[1], self.system.state)
 
         np.divide(self.k[1], 2, out=self.tmp_arr)
         np.dot(self.tmp_arr, self.h, out=self.tmp_arr)
         np.add(self.state, self.tmp_arr, out=self.tmp_arr)
         self.system.f(self.tmp_arr)
-        self.k[2] = np.copy(self.system.state)
+        np.copyto(self.k[2], self.system.state)
 
         np.dot(self.k[2], self.h, out=self.tmp_arr)
         np.add(self.state, self.tmp_arr, out=self.tmp_arr)
         self.system.f(self.tmp_arr)
-        self.k[3] = np.copy(self.system.state)
+        np.copyto(self.k[3], self.system.state)
 
         np.dot(self.k[1], 2, out=self.tmp_arr)
         np.add(self.k[0], self.tmp_arr, out=self.tmp_arr)
@@ -74,7 +74,7 @@ class RungeKutta4MethodSolver:
 def createArr(m1, m2, k1, k2, k3, x10, x20, v10, v20, t):
     sys = MassSpringSystem(m1, m2, k1, k2, k3, x10, x20, v10, v20)
     solver = RungeKutta4MethodSolver(sys, t[1])
-    solver.state = np.copy(sys.initial_state)
+    np.copyto(solver.state, sys.initial_state)
 
     res = np.empty((len(t), 4), dtype=float)
 
@@ -92,7 +92,7 @@ def createArr(m1, m2, k1, k2, k3, x10, x20, v10, v20, t):
 def createArr_(m1, m2, k1, k2, beta, t):
     sys = MassSpringSystem(m1, m2, k1, k2, beta[0], beta[1], beta[2], beta[3], beta[4])
     solver = RungeKutta4MethodSolver(sys, t[1])  # t[1] = h
-    solver.state = np.copy(sys.initial_state)
+    np.copyto(solver.state, sys.initial_state)
 
     res = np.empty((len(t), 4), dtype=float)
 
