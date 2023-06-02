@@ -2,7 +2,7 @@ import numpy as np
 from direct_problem_sol import createArr, createArr_
 from matplotlib import pyplot as plt
 from math import fabs
-
+import time
 
 class JacoianMatrix():
     def __init__(self, len1, len2):
@@ -54,17 +54,16 @@ def CholeskyDecompositionSolver(ec):
     n = len(ec.A)
     ec.L = np.zeros((n, n))
     for i in range(n):
-        for j in range(n):
-            if i == j:
-                if i == 0:
-                    ec.L[i][i] = np.sqrt(ec.A[i][i])
-                else:
-                    ec.L[i][i] = np.sqrt(ec.A[i][i] - np.sum(ec.L[i] ** 2))
+        for j in range(i + 1):
+            sum = 0
+            if (i == j):
+                for k in range(j):
+                    sum += ec.L[j][k] ** 2
+                ec.L[j][j] = np.sqrt(ec.A[j][j] - sum)
             else:
-                if i == 0:
-                    ec.L[j][i] = ec.A[j][i] / ec.L[i][i]
-                elif i < j:
-                    ec.L[j][i] = (ec.A[j][i] - np.sum(ec.L[i] * ec.L[j])) / ec.L[i][i]
+                for k in range(j):
+                    sum += (ec.L[i][k] * ec.L[j][k])
+                ec.L[i][j] = (ec.A[i][j] - sum) / ec.L[j][j]
 
     ec.L_T = ec.L.T
 
@@ -98,10 +97,10 @@ def GaussNewton(t, x2_observed, m1, m2, k1, k2, beta, tol, max_iter):
         beta.old = beta.new
 
         ec.A = np.dot(J.J.T, J.J)
-        ec.b = -np.dot(J.J.T, r.r_beta)
+        ec.b = np.dot(J.J.T, r.r_beta)
         CholeskyDecompositionSolver(ec)
 
-        beta.new = ec.x.T + beta.old
+        beta.new = beta.old - ec.x.T
 
         cost_old = cost_new
         cost_new = np.linalg.norm(r.r_beta)
@@ -125,18 +124,23 @@ def main():
     # добавление шумов
     x2_observed = true_solution[:, 1] + np.random.normal(scale=0.05, size=len(t))
 
+    tic = time.perf_counter()
     # запуск решения
     beta_init = np.array([40, 1, -1, -0.3, 0.6], dtype=float)
     beta = Beta(beta_init)
     tol = 0.000001  # погрешность для условия выхода (использую разность норм бета текущей и предыдущей итерации)
     max_iter = 20
     iter = GaussNewton(t, x2_observed, m1, m2, k1, k2, beta, tol, max_iter)
+    toc = time.perf_counter()
 
     print("Первоначальные данные: k3 = ", k3, ", x10 = ", x10, ", x20 = ", x20, ", v10 = ", v10, ", v20 = ", v20,
+          sep='')
+    print("Приближенные данные: k3 = ", beta_init[0], ", x10 = ", beta_init[1], ", x20 = ", beta_init[2], ", v10 = ", beta_init[3], ", v20 = ", beta_init[4],
           sep='')
     print("Количество пройденных итераций:", iter)
     print("Ответ: k3 = ", beta.new[0], ", x10 = ", beta.new[1], ", x20 = ", beta.new[2], ", v10 = ",
           beta.new[3], ", v20 = ", beta.new[4], sep='')
+    print(f"Вычисление заняло {toc - tic:0.4f} секунд")
 
     # отрисовка зашумленных значений и графика по полученному вектору бета
     plt.plot(t, true_solution[:, 1], color='blue', linewidth=1.5, label='true chart')
