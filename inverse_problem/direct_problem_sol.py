@@ -53,7 +53,7 @@ class RungeKutta4MethodSolver:
         self.system.f(self.tmp_arr)
         self.k[2] = np.copy(self.system.state)
 
-        self.tmp_arr = np.add(self.state, np.dot(self.k[0], self.h))
+        self.tmp_arr = np.add(self.state, np.dot(self.k[2], self.h))
         self.system.f(self.tmp_arr)
         self.k[3] = np.copy(self.system.state)
 
