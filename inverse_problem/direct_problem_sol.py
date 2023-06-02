@@ -44,16 +44,20 @@ class RungeKutta4MethodSolver:
         self.system.f(self.state)
         self.k[0] = np.copy(self.system.state)
 
-        self.tmp_arr = np.add(self.state, np.dot(np.divide(self.k[0], 2), self.h))
+        self.tmp_arr = np.divide(self.k[0], 2)
+        self.tmp_arr = np.dot(self.tmp_arr, self.h)
+        self.tmp_arr = np.add(self.state, self.tmp_arr)
         self.system.f(self.tmp_arr)
         self.k[1] = np.copy(self.system.state)
 
-        self.tmp_arr = self.state + self.k[1] / 2 * self.h
-        self.tmp_arr = np.add(self.state, np.dot(np.divide(self.k[1], 2), self.h))
+        self.tmp_arr = np.divide(self.k[1], 2)
+        self.tmp_arr = np.dot(self.tmp_arr, self.h)
+        self.tmp_arr = np.add(self.state, self.tmp_arr)
         self.system.f(self.tmp_arr)
         self.k[2] = np.copy(self.system.state)
 
-        self.tmp_arr = np.add(self.state, np.dot(self.k[2], self.h))
+        self.tmp_arr = np.dot(self.k[2], self.h)
+        self.tmp_arr = np.add(self.state, self.tmp_arr)
         self.system.f(self.tmp_arr)
         self.k[3] = np.copy(self.system.state)
 
